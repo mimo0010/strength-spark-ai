@@ -6,6 +6,18 @@ export interface Exercise {
   equipment: string[];
   tips: string;
   difficulty: 'beginner' | 'intermediate' | 'professional';
+  muscleGroup: string;
+}
+
+export interface WorkoutLog {
+  exerciseId: string;
+  exerciseName: string;
+  sets: {
+    reps: number;
+    weight: number;
+  }[];
+  date: string;
+  muscleGroup: string;
 }
 
 export const exercises: Record<string, Record<string, Exercise[]>> = {
@@ -13,88 +25,97 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
     beginner: [
       {
         id: 'chest-1',
-        name: 'Push-ups',
+        name: 'Chest Press Machine',
         sets: '3',
         reps: '8-12',
-        equipment: [],
-        tips: 'Keep your body straight, engage your core, and lower until your chest nearly touches the ground.',
-        difficulty: 'beginner'
+        equipment: ['Chest Press Machine'],
+        tips: 'Adjust seat height so handles are at chest level. Press smoothly without locking elbows.',
+        difficulty: 'beginner',
+        muscleGroup: 'chest'
       },
       {
         id: 'chest-2',
-        name: 'Incline Wall Push-ups',
+        name: 'Pec Deck (Butterfly Machine)',
         sets: '3',
         reps: '10-15',
-        equipment: [],
-        tips: 'Place hands on a wall at shoulder height, lean forward and push back. Great for building initial strength.',
-        difficulty: 'beginner'
+        equipment: ['Pec Deck Machine'],
+        tips: 'Keep back pressed against pad, squeeze chest muscles at peak contraction.',
+        difficulty: 'beginner',
+        muscleGroup: 'chest'
       },
       {
         id: 'chest-3',
-        name: 'Knee Push-ups',
+        name: 'Incline Dumbbell Press',
         sets: '3',
-        reps: '8-12',
-        equipment: [],
-        tips: 'Perform push-ups from your knees to reduce body weight and build up strength gradually.',
-        difficulty: 'beginner'
+        reps: '8-10',
+        equipment: ['Dumbbells', 'Incline Bench'],
+        tips: 'Set bench to 30-45 degree incline. Lower weights to chest level with control.',
+        difficulty: 'beginner',
+        muscleGroup: 'chest'
       }
     ],
     intermediate: [
       {
         id: 'chest-4',
-        name: 'Diamond Push-ups',
-        sets: '3',
-        reps: '6-10',
-        equipment: [],
-        tips: 'Form a diamond shape with your hands, focuses more on triceps and inner chest.',
-        difficulty: 'intermediate'
+        name: 'Barbell Bench Press',
+        sets: '4',
+        reps: '6-8',
+        equipment: ['Barbell', 'Bench', 'Safety Rack'],
+        tips: 'Lower bar to chest, press up explosively. Always use safety bars or spotter.',
+        difficulty: 'intermediate',
+        muscleGroup: 'chest'
       },
       {
         id: 'chest-5',
-        name: 'Decline Push-ups',
+        name: 'Cable Crossover',
         sets: '3',
-        reps: '8-12',
-        equipment: ['Bench', 'Chair'],
-        tips: 'Place feet elevated on a bench or chair. Targets upper chest muscles more effectively.',
-        difficulty: 'intermediate'
+        reps: '10-12',
+        equipment: ['Cable Machine'],
+        tips: 'Set cables at chest height, bring handles together in wide arc motion.',
+        difficulty: 'intermediate',
+        muscleGroup: 'chest'
       },
       {
         id: 'chest-6',
-        name: 'Wide-Grip Push-ups',
+        name: 'Decline Barbell Press',
         sets: '3',
-        reps: '8-12',
-        equipment: [],
-        tips: 'Hands placed wider than shoulders to target outer chest. Control the movement.',
-        difficulty: 'intermediate'
+        reps: '8-10',
+        equipment: ['Barbell', 'Decline Bench'],
+        tips: 'Target lower chest with 15-30 degree decline. Control the weight throughout.',
+        difficulty: 'intermediate',
+        muscleGroup: 'chest'
       }
     ],
     professional: [
       {
         id: 'chest-7',
-        name: 'Archer Push-ups',
-        sets: '3',
-        reps: '4-8 each side',
-        equipment: [],
-        tips: 'Shift weight to one side during push-up. Excellent for unilateral strength and stability.',
-        difficulty: 'professional'
+        name: 'Weighted Dips',
+        sets: '4',
+        reps: '6-8',
+        equipment: ['Dip Station', 'Weight Belt'],
+        tips: 'Lean forward slightly, lower until shoulders below elbows. Add weight progressively.',
+        difficulty: 'professional',
+        muscleGroup: 'chest'
       },
       {
         id: 'chest-8',
-        name: 'Plyometric Push-ups',
+        name: 'Single-Arm Cable Press',
         sets: '3',
-        reps: '6-10',
-        equipment: [],
-        tips: 'Explosive push-up leaving the ground. Focus on soft landing and immediate next rep.',
-        difficulty: 'professional'
+        reps: '8-10 each arm',
+        equipment: ['Cable Machine'],
+        tips: 'Unilateral pressing for core stability and muscle imbalances. Control rotation.',
+        difficulty: 'professional',
+        muscleGroup: 'chest'
       },
       {
         id: 'chest-9',
-        name: 'One-Arm Push-ups',
-        sets: '2',
-        reps: '2-5 each arm',
-        equipment: [],
-        tips: 'Ultimate push-up variation. Keep feet wide for stability and maintain straight body line.',
-        difficulty: 'professional'
+        name: 'Incline Barbell Press (Heavy)',
+        sets: '4',
+        reps: '4-6',
+        equipment: ['Barbell', 'Incline Bench', 'Safety Rack'],
+        tips: 'Heavy compound movement for upper chest. Use progressive overload principles.',
+        difficulty: 'professional',
+        muscleGroup: 'chest'
       }
     ]
   },
@@ -107,7 +128,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '12-15',
         equipment: [],
         tips: 'Stand arms length from wall, place palms flat and curl by bending elbows.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'biceps'
       },
       {
         id: 'biceps-2',
@@ -116,7 +138,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '10-15',
         equipment: ['Towel'],
         tips: 'Step on towel, hold ends and curl up. Create your own resistance.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'biceps'
       }
     ],
     intermediate: [
@@ -127,7 +150,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '5-8',
         equipment: ['Pull-up Bar', 'Resistance Band'],
         tips: 'Use resistance band for assistance. Focus on controlled movement and full range of motion.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'biceps'
       },
       {
         id: 'biceps-4',
@@ -136,7 +160,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '10-12',
         equipment: ['Backpack', 'Books/Water'],
         tips: 'Load backpack with books or water bottles. Perform bicep curls holding the straps.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'biceps'
       }
     ],
     professional: [
@@ -147,7 +172,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '4-6',
         equipment: ['Pull-up Bar'],
         tips: 'Pull up to one side of the bar, then the other. Extremely challenging variation.',
-        difficulty: 'professional'
+        difficulty: 'professional',
+        muscleGroup: 'biceps'
       }
     ]
   },
@@ -160,7 +186,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '10-15',
         equipment: [],
         tips: 'Face wall, place palms flat and push. Focus on using triceps to push away from wall.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'triceps'
       },
       {
         id: 'triceps-2',
@@ -169,7 +196,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '8-12',
         equipment: ['Chair', 'Bench'],
         tips: 'Sit on edge, hands beside you, lower body by bending elbows. Keep knees bent for easier variation.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'triceps'
       }
     ],
     intermediate: [
@@ -180,7 +208,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '8-12',
         equipment: ['Chair', 'Bench'],
         tips: 'Same as beginner but with legs extended for increased difficulty.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'triceps'
       },
       {
         id: 'triceps-4',
@@ -189,7 +218,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '6-10',
         equipment: [],
         tips: 'Form downward dog position, lower head toward ground. Great shoulder and tricep exercise.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'triceps'
       }
     ],
     professional: [
@@ -200,7 +230,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '3-8',
         equipment: [],
         tips: 'Against wall for support. Ultimate upper body strength exercise requiring significant practice.',
-        difficulty: 'professional'
+        difficulty: 'professional',
+        muscleGroup: 'triceps'
       }
     ]
   },
@@ -213,7 +244,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '10-15',
         equipment: [],
         tips: 'Lie face down, lift chest and legs simultaneously. Hold for 2-3 seconds at top.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'back'
       },
       {
         id: 'back-2',
@@ -222,7 +254,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '12-15',
         equipment: [],
         tips: 'Lie face down, move arms in snow angel motion while lifting chest slightly.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'back'
       }
     ],
     intermediate: [
@@ -233,7 +266,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '10-12',
         equipment: ['Towel'],
         tips: 'Wrap towel around door handle, lean back and pull body forward. Great lat exercise.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'back'
       },
       {
         id: 'back-4',
@@ -242,7 +276,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '8-10 each arm',
         equipment: ['Backpack', 'Books'],
         tips: 'Use loaded backpack as weight, perform rowing motion while in split stance.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'back'
       }
     ],
     professional: [
@@ -253,7 +288,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '5-10',
         equipment: ['Pull-up Bar'],
         tips: 'Hands wider than shoulders, pull until chin clears bar. Focus on lat engagement.',
-        difficulty: 'professional'
+        difficulty: 'professional',
+        muscleGroup: 'back'
       }
     ]
   },
@@ -266,7 +302,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '15 each direction',
         equipment: [],
         tips: 'Start small, gradually increase circle size. Great warm-up and strength builder.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'shoulders'
       },
       {
         id: 'shoulders-2',
@@ -275,7 +312,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '10-30 seconds',
         equipment: [],
         tips: 'Chest facing wall, walk feet up. Build shoulder stability and strength.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'shoulders'
       }
     ],
     intermediate: [
@@ -286,7 +324,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '6-8',
         equipment: [],
         tips: 'Start in pike position, walk hands forward and back. Great dynamic shoulder exercise.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'shoulders'
       },
       {
         id: 'shoulders-4',
@@ -295,7 +334,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '12-15',
         equipment: ['Water Bottles'],
         tips: 'Use water bottles as weights, raise arms to sides until parallel to ground.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'shoulders'
       }
     ],
     professional: [
@@ -306,7 +346,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '3-8',
         equipment: [],
         tips: 'Full handstand push-up against wall. Ultimate shoulder strength exercise.',
-        difficulty: 'professional'
+        difficulty: 'professional',
+        muscleGroup: 'shoulders'
       }
     ]
   },
@@ -319,7 +360,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '12-15',
         equipment: [],
         tips: 'Feet shoulder-width apart, lower until thighs parallel to ground. Keep chest up.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'legs'
       },
       {
         id: 'legs-2',
@@ -328,7 +370,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '8-10 each leg',
         equipment: [],
         tips: 'Step forward, lower back knee toward ground. Keep front knee over ankle.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'legs'
       },
       {
         id: 'legs-3',
@@ -337,7 +380,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '20-45 seconds',
         equipment: [],
         tips: 'Back against wall, slide down until thighs parallel. Great isometric exercise.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'legs'
       }
     ],
     intermediate: [
@@ -348,7 +392,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '8-12',
         equipment: [],
         tips: 'Explode up from squat position, land softly. Great for power development.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'legs'
       },
       {
         id: 'legs-5',
@@ -357,7 +402,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '10-12 each leg',
         equipment: [],
         tips: 'Continuous forward lunges. Great for balance, coordination, and strength.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'legs'
       },
       {
         id: 'legs-6',
@@ -366,7 +412,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '5-8 each leg',
         equipment: [],
         tips: 'Hold onto something for balance, lower on one leg. Build single-leg strength.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'legs'
       }
     ],
     professional: [
@@ -377,7 +424,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '3-6 each leg',
         equipment: [],
         tips: 'Full single-leg squat with other leg extended forward. Ultimate leg strength test.',
-        difficulty: 'professional'
+        difficulty: 'professional',
+        muscleGroup: 'legs'
       },
       {
         id: 'legs-8',
@@ -386,7 +434,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '2-4 each leg',
         equipment: [],
         tips: 'Single-leg squat holding other foot behind. Extremely advanced movement.',
-        difficulty: 'professional'
+        difficulty: 'professional',
+        muscleGroup: 'legs'
       }
     ]
   },
@@ -399,7 +448,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '20-45 seconds',
         equipment: [],
         tips: 'Maintain straight line from head to heels. Engage core throughout.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'abs'
       },
       {
         id: 'abs-2',
@@ -408,7 +458,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '12-15',
         equipment: [],
         tips: 'Lift shoulders off ground, exhale at top. Focus on controlled movement.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'abs'
       },
       {
         id: 'abs-3',
@@ -417,7 +468,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '8-10 each side',
         equipment: [],
         tips: 'Lie on back, extend opposite arm and leg. Great for core stability.',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        muscleGroup: 'abs'
       }
     ],
     intermediate: [
@@ -428,7 +480,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '15-20 each side',
         equipment: [],
         tips: 'Alternate elbow to opposite knee. Keep steady rhythm and controlled movement.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'abs'
       },
       {
         id: 'abs-5',
@@ -437,7 +490,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '30 seconds',
         equipment: [],
         tips: 'Quick alternating knee drives in plank position. Keep hips level.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'abs'
       },
       {
         id: 'abs-6',
@@ -446,7 +500,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '15-20 each side',
         equipment: [],
         tips: 'Sit with feet off ground, rotate torso side to side. Can hold weight for added difficulty.',
-        difficulty: 'intermediate'
+        difficulty: 'intermediate',
+        muscleGroup: 'abs'
       }
     ],
     professional: [
@@ -457,7 +512,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '3-6',
         equipment: ['Bench'],
         tips: 'Lie on bench, hold behind head, lift entire body parallel to ground. Extremely advanced.',
-        difficulty: 'professional'
+        difficulty: 'professional',
+        muscleGroup: 'abs'
       },
       {
         id: 'abs-8',
@@ -466,7 +522,8 @@ export const exercises: Record<string, Record<string, Exercise[]>> = {
         reps: '5-10 seconds',
         equipment: ['Pull-up Bar'],
         tips: 'Side plank against vertical bar. Work up to full human flag position.',
-        difficulty: 'professional'
+        difficulty: 'professional',
+        muscleGroup: 'abs'
       }
     ]
   }

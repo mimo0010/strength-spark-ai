@@ -1,10 +1,15 @@
-import { useState } from 'react';
-import { ArrowLeft, Dumbbell } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Dumbbell, Settings, TrendingUp } from 'lucide-react';
 import BodyPartCard from './BodyPartCard';
 import DifficultyModal from './DifficultyModal';
 import ExerciseCard from './ExerciseCard';
+import WorkoutLogger from './WorkoutLogger';
+import ProgressTracker from './ProgressTracker';
+import GoogleSheetsSetup from './GoogleSheetsSetup';
 import { exercises } from '@/data/exercises';
 import { Button } from '@/components/ui/button';
+import { GoogleSheetsService, type GoogleSheetsConfig } from '@/services/googleSheets';
+import { WorkoutLog } from '@/data/exercises';
 
 // Import muscle group images
 import chestImage from '@/assets/chest.jpg';
@@ -32,6 +37,22 @@ const FitnessApp = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [currentExercises, setCurrentExercises] = useState<any[]>([]);
+  const [currentView, setCurrentView] = useState<'home' | 'exercises' | 'progress' | 'setup'>('home');
+  const [googleSheetsService, setGoogleSheetsService] = useState<GoogleSheetsService | null>(null);
+  const [isLogging, setIsLogging] = useState(false);
+
+  useEffect(() => {
+    // Load Google Sheets config from localStorage
+    const savedConfig = localStorage.getItem('googleSheets_config');
+    if (savedConfig) {
+      try {
+        const config: GoogleSheetsConfig = JSON.parse(savedConfig);
+        setGoogleSheetsService(new GoogleSheetsService(config));
+      } catch (error) {
+        console.error('Error loading Google Sheets config:', error);
+      }
+    }
+  }, []);
 
   const handleBodyPartClick = (bodyPartKey: string, bodyPartName: string) => {
     setSelectedBodyPart(bodyPartKey);
@@ -42,8 +63,78 @@ const FitnessApp = () => {
     if (selectedBodyPart) {
       setSelectedDifficulty(difficulty);
       setCurrentExercises(exercises[selectedBodyPart]?.[difficulty] || []);
+      setCurrentView('exercises');
     }
   };
+
+  const handleLogWorkout = async (workoutLog: WorkoutLog) => {
+    setIsLogging(true);
+    try {
+      if (googleSheetsService) {
+        await googleSheetsService.logWorkout(workoutLog);
+      } else {
+        // Fallback to localStorage only
+        const existingLogs = localStorage.getItem('workout_logs');
+        const logs = existingLogs ? JSON.parse(existingLogs) : [];
+        logs.push(workoutLog);
+        localStorage.setItem('workout_logs', JSON.stringify(logs));
+      }
+    } catch (error) {
+      console.error('Error logging workout:', error);
+    } finally {
+      setIsLogging(false);
+    }
+  };
+
+  const handleConfigSave = (config: GoogleSheetsConfig) => {
+    setGoogleSheetsService(new GoogleSheetsService(config));
+    setCurrentView('home');
+  };
+
+  // Show setup view
+  if (currentView === 'setup') {
+    return (
+      <div className="min-h-screen bg-gradient-dark p-4 sm:p-6">
+        <div className="max-w-2xl mx-auto">
+          <Button
+            variant="ghost"
+            onClick={() => setCurrentView('home')}
+            className="mb-6 text-foreground hover:text-primary"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Home
+          </Button>
+          <GoogleSheetsSetup onConfigSave={handleConfigSave} />
+        </div>
+      </div>
+    );
+  }
+
+  // Show progress view
+  if (currentView === 'progress') {
+    return (
+      <div className="min-h-screen bg-gradient-dark p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => setCurrentView('home')}
+              className="text-foreground hover:text-primary"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to Home
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground">Progress Tracking</h1>
+            <div className="w-[120px]" />
+          </div>
+          <ProgressTracker 
+            googleSheetsService={googleSheetsService}
+            selectedMuscleGroup={selectedBodyPart || undefined}
+          />
+        </div>
+      </div>
+    );
+  }
 
   const handleBackToHome = () => {
     setSelectedBodyPart(null);
@@ -88,7 +179,14 @@ const FitnessApp = () => {
           {/* Exercise Grid */}
           <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
             {currentExercises.map((exercise) => (
-              <ExerciseCard key={exercise.id} exercise={exercise} />
+              <div key={exercise.id} className="space-y-4">
+                <ExerciseCard exercise={exercise} />
+                <WorkoutLogger 
+                  exercise={exercise} 
+                  onLogWorkout={handleLogWorkout}
+                  isLogging={isLogging}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -115,10 +213,29 @@ const FitnessApp = () => {
             <p className="text-xl sm:text-2xl text-muted-foreground mb-4">
               Your Personal Workout Companion
             </p>
-            <p className="text-lg text-muted-foreground/80 max-w-2xl mx-auto">
-              Select your target muscle group and difficulty level to get customized workouts 
-              tailored to your fitness journey.
+            <p className="text-lg text-muted-foreground/80 max-w-2xl mx-auto mb-8">
+              Track your workouts with Google Sheets integration and monitor your progress over time.
             </p>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Button 
+                onClick={() => setCurrentView('progress')}
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                View Progress
+              </Button>
+              <Button 
+                onClick={() => setCurrentView('setup')}
+                variant="outline"
+                className="border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Google Sheets Setup
+              </Button>
+            </div>
           </div>
         </div>
       </div>
