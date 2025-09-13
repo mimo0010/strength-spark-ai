@@ -10,6 +10,7 @@ import { exercises } from '@/data/exercises';
 import { Button } from '@/components/ui/button';
 import { GoogleSheetsService, type GoogleSheetsConfig } from '@/services/googleSheets';
 import { WorkoutLog } from '@/data/exercises';
+import { apiLogger } from '@/lib/apiLogger';
 
 // Import muscle group images
 import chestImage from '@/assets/chest.jpg';
@@ -78,6 +79,13 @@ const FitnessApp = () => {
         const logs = existingLogs ? JSON.parse(existingLogs) : [];
         logs.push(workoutLog);
         localStorage.setItem('workout_logs', JSON.stringify(logs));
+        apiLogger.log({
+          status: 'success',
+          source: 'LocalStorage',
+          action: 'logWorkout',
+          message: 'Workout stored locally (Google Sheets not configured).',
+          meta: { exerciseId: workoutLog.exerciseId, sets: workoutLog.sets.length }
+        });
       }
     } catch (error) {
       console.error('Error logging workout:', error);

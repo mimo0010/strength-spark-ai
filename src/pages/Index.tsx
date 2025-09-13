@@ -1,7 +1,13 @@
 import FitnessApp from '@/components/FitnessApp';
+import ApiStatusConsole from '@/components/ApiStatusConsole';
 
 const Index = () => {
-  return <FitnessApp />;
+  return (
+    <>
+      <FitnessApp />
+      <ApiStatusConsole />
+    </>
+  );
 };
 
 export default Index;

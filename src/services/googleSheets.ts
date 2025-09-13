@@ -1,4 +1,5 @@
 import { WorkoutLog } from '@/data/exercises';
+import { apiLogger } from '@/lib/apiLogger';
 
 export interface GoogleSheetsConfig {
   apiKey: string;
@@ -77,6 +78,14 @@ export class GoogleSheetsService {
       // For this frontend implementation, we'll use the append API
       // This requires the spreadsheet to be publicly editable or use OAuth
       const range = `${this.config.sheetName}!A:H`;
+
+      apiLogger.log({
+        status: 'info',
+        source: 'GoogleSheets',
+        action: 'logWorkout',
+        message: 'Preparing to log workout (frontend-only mode)',
+        meta: { exerciseId: workoutLog.exerciseId, sets: workoutLog.sets.length }
+      });
       
       const rows = workoutLog.sets.map((set, index) => [
         workoutLog.date,
@@ -92,15 +101,40 @@ export class GoogleSheetsService {
       // Since we're using frontend-only approach with API key only,
       // we can only read data, not write. Users would need OAuth for writing.
       console.log('Workout data prepared for logging:', rows);
+      apiLogger.log({
+        status: 'info',
+        source: 'GoogleSheets',
+        action: 'logWorkout',
+        message: 'Write to Google Sheets skipped (API key only). Storing locally.'
+      });
       
       // Store in localStorage as fallback
       this.storeWorkoutLocally(workoutLog);
+      apiLogger.log({
+        status: 'success',
+        source: 'LocalStorage',
+        action: 'logWorkout',
+        message: 'Workout stored locally as fallback.'
+      });
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error logging workout:', error);
+      apiLogger.log({
+        status: 'error',
+        source: 'GoogleSheets',
+        action: 'logWorkout',
+        message: error?.message || 'Unknown error while logging workout',
+        meta: { error }
+      });
       // Fallback to local storage
       this.storeWorkoutLocally(workoutLog);
+      apiLogger.log({
+        status: 'success',
+        source: 'LocalStorage',
+        action: 'logWorkout',
+        message: 'Workout stored locally after error.'
+      });
       return false;
     }
   }
@@ -121,29 +155,71 @@ export class GoogleSheetsService {
       // Try to read from Google Sheets first
       const range = `${this.config.sheetName}!A:H`;
       const url = `${this.getBaseUrl()}/values/${range}?key=${this.config.apiKey}`;
+
+      apiLogger.log({
+        status: 'info',
+        source: 'GoogleSheets',
+        action: 'getWorkoutHistory',
+        message: 'Fetching workout history from Google Sheets',
+        meta: { url }
+      });
       
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
+        apiLogger.log({
+          status: 'success',
+          source: 'GoogleSheets',
+          action: 'getWorkoutHistory',
+          message: 'Fetched data from Google Sheets (parsing not implemented, using localStorage for now).',
+          meta: { rows: data.values?.length ?? 0 }
+        });
         // Parse Google Sheets data (implementation depends on sheet structure)
         // For now, fall back to localStorage
+      } else {
+        apiLogger.log({
+          status: 'error',
+          source: 'GoogleSheets',
+          action: 'getWorkoutHistory',
+          message: `Failed to fetch from Google Sheets: ${response.status} ${response.statusText}`,
+          meta: { status: response.status }
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error reading from Google Sheets:', error);
+      apiLogger.log({
+        status: 'error',
+        source: 'GoogleSheets',
+        action: 'getWorkoutHistory',
+        message: error?.message || 'Unknown error while reading from Google Sheets',
+        meta: { error }
+      });
     }
 
     // Fallback to localStorage
     try {
       const existingLogs = localStorage.getItem('workout_logs');
       const logs: WorkoutLog[] = existingLogs ? JSON.parse(existingLogs) : [];
+      const result = muscleGroup ? logs.filter(log => log.muscleGroup === muscleGroup) : logs;
+
+      apiLogger.log({
+        status: 'success',
+        source: 'LocalStorage',
+        action: 'getWorkoutHistory',
+        message: `Loaded ${result.length} workout logs from localStorage${muscleGroup ? ' (filtered)' : ''}.`,
+        meta: { total: logs.length, filtered: result.length, muscleGroup: muscleGroup || 'all' }
+      });
       
-      if (muscleGroup) {
-        return logs.filter(log => log.muscleGroup === muscleGroup);
-      }
-      
-      return logs;
-    } catch (error) {
+      return result;
+    } catch (error: any) {
       console.error('Error reading local workout history:', error);
+      apiLogger.log({
+        status: 'error',
+        source: 'LocalStorage',
+        action: 'getWorkoutHistory',
+        message: error?.message || 'Failed to read workout logs from localStorage',
+        meta: { error }
+      });
       return [];
     }
   }
