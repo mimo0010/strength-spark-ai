@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
+import { AlertCircle, CheckCircle, ExternalLink, LogIn, LogOut } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { validateGoogleSheetsConfig, extractSpreadsheetId, type GoogleSheetsConfig } from '@/services/googleSheets';
 import { useToast } from '@/hooks/use-toast';
+import { apiLogger } from '@/lib/apiLogger';
 
 interface GoogleSheetsSetupProps {
   onConfigSave: (config: GoogleSheetsConfig) => void;
@@ -19,12 +20,15 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
     apiKey: '',
     spreadsheetId: '',
     sheetName: 'WorkoutLogs',
+    clientId: '',
     ...initialConfig
   });
   
   const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [isValid, setIsValid] = useState(false);
+  const [isOAuthReady, setIsOAuthReady] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,12 +37,131 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
     setIsValid(validationErrors.length === 0);
   }, [config]);
 
+  useEffect(() => {
+    // Initialize Google OAuth when component mounts
+    const initializeGoogleOAuth = () => {
+      if (window.google && config.clientId) {
+        window.google.accounts.id.initialize({
+          client_id: config.clientId,
+          callback: handleCredentialResponse,
+        });
+        setIsOAuthReady(true);
+        
+        // Check if already signed in
+        const savedToken = localStorage.getItem('google_access_token');
+        if (savedToken) {
+          setConfig(prev => ({ ...prev, accessToken: savedToken }));
+          setIsSignedIn(true);
+        }
+      }
+    };
+
+    if (window.google) {
+      initializeGoogleOAuth();
+    } else {
+      // Wait for Google script to load
+      const checkGoogle = setInterval(() => {
+        if (window.google) {
+          clearInterval(checkGoogle);
+          initializeGoogleOAuth();
+        }
+      }, 100);
+      
+      return () => clearInterval(checkGoogle);
+    }
+  }, [config.clientId]);
+
   const handleSpreadsheetUrlChange = (url: string) => {
     setSpreadsheetUrl(url);
     const extractedId = extractSpreadsheetId(url);
     if (extractedId) {
       setConfig(prev => ({ ...prev, spreadsheetId: extractedId }));
     }
+  };
+
+  const handleCredentialResponse = async (response: any) => {
+    try {
+      // Exchange the credential for an access token
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: response.credential,
+          client_id: config.clientId!,
+          grant_type: 'authorization_code',
+          scope: 'https://www.googleapis.com/auth/spreadsheets'
+        })
+      });
+      
+      if (tokenResponse.ok) {
+        const tokenData = await tokenResponse.json();
+        const accessToken = tokenData.access_token;
+        
+        localStorage.setItem('google_access_token', accessToken);
+        setConfig(prev => ({ ...prev, accessToken }));
+        setIsSignedIn(true);
+        
+        apiLogger.log({
+          status: 'success',
+          source: 'GoogleOAuth',
+          action: 'signin',
+          message: 'Successfully authenticated with Google'
+        });
+        
+        toast({
+          title: "Google OAuth Success",
+          description: "You can now write to Google Sheets!",
+        });
+      }
+    } catch (error: any) {
+      apiLogger.log({
+        status: 'error',
+        source: 'GoogleOAuth',
+        action: 'signin',
+        message: error?.message || 'OAuth authentication failed'
+      });
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    if (!config.clientId) {
+      toast({
+        title: "Client ID Required",
+        description: "Please enter your Google OAuth Client ID first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Use Google OAuth with proper scopes for Sheets API
+    const oauth2Endpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const params = new URLSearchParams({
+      client_id: config.clientId,
+      redirect_uri: window.location.origin,
+      response_type: 'code',
+      scope: 'https://www.googleapis.com/auth/spreadsheets',
+      access_type: 'offline'
+    });
+
+    window.location.href = `${oauth2Endpoint}?${params}`;
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('google_access_token');
+    setConfig(prev => ({ ...prev, accessToken: undefined }));
+    setIsSignedIn(false);
+    
+    apiLogger.log({
+      status: 'info',
+      source: 'GoogleOAuth',
+      action: 'signout',
+      message: 'Signed out from Google'
+    });
+    
+    toast({
+      title: "Signed Out",
+      description: "You have been signed out of Google.",
+    });
   };
 
   const handleSave = () => {
@@ -70,19 +193,79 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
         <AlertDescription>
           <strong>Setup Instructions:</strong>
           <br />
-          1. Create a Google Sheets API key (read-only is sufficient for viewing data)
+          1. Create a Google Cloud Project and enable the Google Sheets API
           <br />
-          2. Create a Google Spreadsheet and make it publicly editable for logging workouts
+          2. Create OAuth 2.0 credentials (Web application) for write access
           <br />
-          3. Add a sheet named "WorkoutLogs" with headers: Date, Exercise Name, Muscle Group, Set Number, Reps, Weight (kg), Difficulty Level, Notes
+          3. Create a Google Spreadsheet with a sheet named "WorkoutLogs"
+          <br />
+          4. Add headers to row 1: Date, Exercise Name, Muscle Group, Set Number, Reps, Weight (kg), Difficulty Level, Notes
         </AlertDescription>
       </Alert>
 
       <div className="space-y-4">
-        {/* API Key */}
+        {/* OAuth Client ID */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="apiKey">Google Sheets API Key</Label>
+            <Label htmlFor="clientId">Google OAuth Client ID</Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open('https://console.cloud.google.com/apis/credentials', '_blank')}
+              className="text-primary hover:text-primary/80"
+            >
+              <ExternalLink className="w-4 h-4 mr-1" />
+              Get Client ID
+            </Button>
+          </div>
+          <Input
+            id="clientId"
+            placeholder="Enter your Google OAuth Client ID"
+            value={config.clientId}
+            onChange={(e) => setConfig(prev => ({ ...prev, clientId: e.target.value }))}
+            className="bg-muted/50"
+          />
+        </div>
+
+        {/* Google Sign In */}
+        <div className="space-y-2">
+          <Label>Google Authentication</Label>
+          <div className="flex items-center gap-2">
+            {!isSignedIn ? (
+              <Button
+                onClick={handleGoogleSignIn}
+                disabled={!config.clientId}
+                className="flex items-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                Sign in with Google
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-green-400">✓ Signed in to Google</div>
+                <Button
+                  onClick={handleSignOut}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </div>
+            )}
+          </div>
+          {isSignedIn && (
+            <p className="text-sm text-muted-foreground">
+              You now have write access to Google Sheets. Workouts will be automatically logged!
+            </p>
+          )}
+        </div>
+
+        {/* API Key (backup) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="apiKey">Google Sheets API Key (for reading)</Label>
             <Button
               variant="ghost"
               size="sm"
@@ -96,7 +279,7 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
           <Input
             id="apiKey"
             type="password"
-            placeholder="Enter your Google Sheets API key"
+            placeholder="Enter your Google Sheets API key (optional)"
             value={config.apiKey}
             onChange={(e) => setConfig(prev => ({ ...prev, apiKey: e.target.value }))}
             className="bg-muted/50"

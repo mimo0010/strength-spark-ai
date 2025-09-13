@@ -5,6 +5,8 @@ export interface GoogleSheetsConfig {
   apiKey: string;
   spreadsheetId: string;
   sheetName: string;
+  accessToken?: string;
+  clientId?: string;
 }
 
 export class GoogleSheetsService {
@@ -75,15 +77,13 @@ export class GoogleSheetsService {
 
   async logWorkout(workoutLog: WorkoutLog): Promise<boolean> {
     try {
-      // For this frontend implementation, we'll use the append API
-      // This requires the spreadsheet to be publicly editable or use OAuth
       const range = `${this.config.sheetName}!A:H`;
 
       apiLogger.log({
         status: 'info',
         source: 'GoogleSheets',
         action: 'logWorkout',
-        message: 'Preparing to log workout (frontend-only mode)',
+        message: 'Preparing to log workout',
         meta: { exerciseId: workoutLog.exerciseId, sets: workoutLog.sets.length }
       });
       
@@ -98,23 +98,59 @@ export class GoogleSheetsService {
         '' // Notes
       ]);
 
-      // Since we're using frontend-only approach with API key only,
-      // we can only read data, not write. Users would need OAuth for writing.
-      console.log('Workout data prepared for logging:', rows);
-      apiLogger.log({
-        status: 'info',
-        source: 'GoogleSheets',
-        action: 'logWorkout',
-        message: 'Write to Google Sheets skipped (API key only). Storing locally.'
-      });
+      // Try to write to Google Sheets if we have access token
+      if (this.config.accessToken) {
+        const appendUrl = `${this.getBaseUrl()}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+        
+        const response = await fetch(appendUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.config.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            values: rows
+          })
+        });
+
+        if (response.ok) {
+          apiLogger.log({
+            status: 'success',
+            source: 'GoogleSheets',
+            action: 'logWorkout',
+            message: `Successfully logged ${rows.length} sets to Google Sheets`,
+            meta: { sets: rows.length }
+          });
+          
+          // Also store locally as backup
+          this.storeWorkoutLocally(workoutLog);
+          return true;
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          apiLogger.log({
+            status: 'error',
+            source: 'GoogleSheets',
+            action: 'logWorkout',
+            message: `Failed to write to Google Sheets: ${response.status} ${response.statusText}`,
+            meta: { status: response.status, error: errorData }
+          });
+        }
+      } else {
+        apiLogger.log({
+          status: 'info',
+          source: 'GoogleSheets',
+          action: 'logWorkout',
+          message: 'No OAuth access token available. Storing locally only.'
+        });
+      }
       
-      // Store in localStorage as fallback
+      // Fallback to localStorage
       this.storeWorkoutLocally(workoutLog);
       apiLogger.log({
         status: 'success',
         source: 'LocalStorage',
         action: 'logWorkout',
-        message: 'Workout stored locally as fallback.'
+        message: 'Workout stored locally.'
       });
       
       return true;
@@ -129,12 +165,6 @@ export class GoogleSheetsService {
       });
       // Fallback to local storage
       this.storeWorkoutLocally(workoutLog);
-      apiLogger.log({
-        status: 'success',
-        source: 'LocalStorage',
-        action: 'logWorkout',
-        message: 'Workout stored locally after error.'
-      });
       return false;
     }
   }
@@ -253,8 +283,8 @@ export class GoogleSheetsService {
 export const validateGoogleSheetsConfig = (config: Partial<GoogleSheetsConfig>): string[] => {
   const errors: string[] = [];
   
-  if (!config.apiKey) {
-    errors.push('Google Sheets API key is required');
+  if (!config.clientId && !config.apiKey) {
+    errors.push('Either Google OAuth Client ID or API key is required');
   }
   
   if (!config.spreadsheetId) {
