@@ -85,7 +85,7 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
         body: new URLSearchParams({
           code: code,
           client_id: config.clientId!,
-          client_secret: '', // Note: For security, this should be handled server-side
+          client_secret: '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', // Note: For security, this should be handled server-side
           grant_type: 'authorization_code',
           redirect_uri: window.location.origin,
           scope: 'https://www.googleapis.com/auth/spreadsheets'
