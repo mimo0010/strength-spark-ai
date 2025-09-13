@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle, ExternalLink, LogIn, LogOut } from 'lucide-react';
+import { AlertCircle, CheckCircle, ExternalLink, LogIn, LogOut, Copy } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { validateGoogleSheetsConfig, extractSpreadsheetId, type GoogleSheetsConfig } from '@/services/googleSheets';
 import { useToast } from '@/hooks/use-toast';
@@ -27,9 +27,14 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
   const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [isValid, setIsValid] = useState(false);
-  const [isOAuthReady, setIsOAuthReady] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Get current URL for OAuth setup instructions
+    setCurrentUrl(window.location.origin);
+  }, []);
 
   useEffect(() => {
     const validationErrors = validateGoogleSheetsConfig(config);
@@ -38,36 +43,28 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
   }, [config]);
 
   useEffect(() => {
-    // Initialize Google OAuth when component mounts
-    const initializeGoogleOAuth = () => {
-      if (window.google && config.clientId) {
-        window.google.accounts.id.initialize({
-          client_id: config.clientId,
-          callback: handleCredentialResponse,
-        });
-        setIsOAuthReady(true);
-        
-        // Check if already signed in
-        const savedToken = localStorage.getItem('google_access_token');
-        if (savedToken) {
-          setConfig(prev => ({ ...prev, accessToken: savedToken }));
-          setIsSignedIn(true);
-        }
-      }
-    };
+    // Check if already signed in
+    const savedToken = localStorage.getItem('google_access_token');
+    if (savedToken) {
+      setConfig(prev => ({ ...prev, accessToken: savedToken }));
+      setIsSignedIn(true);
+    }
 
-    if (window.google) {
-      initializeGoogleOAuth();
-    } else {
-      // Wait for Google script to load
-      const checkGoogle = setInterval(() => {
-        if (window.google) {
-          clearInterval(checkGoogle);
-          initializeGoogleOAuth();
-        }
-      }, 100);
-      
-      return () => clearInterval(checkGoogle);
+    // Check for OAuth callback parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const error = urlParams.get('error');
+
+    if (error) {
+      toast({
+        title: "OAuth Error",
+        description: `Authentication failed: ${error}`,
+        variant: "destructive"
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (code && config.clientId) {
+      handleOAuthCallback(code);
     }
   }, [config.clientId]);
 
@@ -79,16 +76,18 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
     }
   };
 
-  const handleCredentialResponse = async (response: any) => {
+  const handleOAuthCallback = async (code: string) => {
     try {
-      // Exchange the credential for an access token
+      // Exchange the authorization code for an access token
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          code: response.credential,
+          code: code,
           client_id: config.clientId!,
+          client_secret: '', // Note: For security, this should be handled server-side
           grant_type: 'authorization_code',
+          redirect_uri: window.location.origin,
           scope: 'https://www.googleapis.com/auth/spreadsheets'
         })
       });
@@ -101,6 +100,9 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
         setConfig(prev => ({ ...prev, accessToken }));
         setIsSignedIn(true);
         
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
         apiLogger.log({
           status: 'success',
           source: 'GoogleOAuth',
@@ -112,13 +114,23 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
           title: "Google OAuth Success",
           description: "You can now write to Google Sheets!",
         });
+      } else {
+        const errorData = await tokenResponse.json();
+        throw new Error(errorData.error_description || 'Token exchange failed');
       }
     } catch (error: any) {
       apiLogger.log({
         status: 'error',
         source: 'GoogleOAuth',
         action: 'signin',
-        message: error?.message || 'OAuth authentication failed'
+        message: error?.message || 'OAuth authentication failed',
+        meta: { error }
+      });
+      
+      toast({
+        title: "Authentication Failed",
+        description: error.message || "Failed to authenticate with Google",
+        variant: "destructive"
       });
     }
   };
@@ -133,14 +145,15 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
       return;
     }
 
-    // Use Google OAuth with proper scopes for Sheets API
+    // Redirect to Google OAuth
     const oauth2Endpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
     const params = new URLSearchParams({
       client_id: config.clientId,
-      redirect_uri: window.location.origin,
+      redirect_uri: window.location.origin, // This needs to be configured in Google Console
       response_type: 'code',
       scope: 'https://www.googleapis.com/auth/spreadsheets',
-      access_type: 'offline'
+      access_type: 'offline',
+      prompt: 'consent'
     });
 
     window.location.href = `${oauth2Endpoint}?${params}`;
@@ -164,6 +177,14 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
     });
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copied!",
+        description: "URL copied to clipboard",
+      });
+    });
+  };
   const handleSave = () => {
     if (isValid) {
       localStorage.setItem('googleSheets_config', JSON.stringify(config));
@@ -179,6 +200,9 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
     window.open('https://developers.google.com/sheets/api/guides/authorizing#APIKey', '_blank');
   };
 
+  const openOAuthGuide = () => {
+    window.open('https://developers.google.com/identity/protocols/oauth2/web-server', '_blank');
+  };
   return (
     <Card className="bg-glass border-glass backdrop-blur-sm p-6 space-y-6">
       <div className="space-y-2">
@@ -188,18 +212,21 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
         </p>
       </div>
 
+      {/* OAuth Setup Instructions */}
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <strong>Setup Instructions:</strong>
+          <strong>Simplified Setup (Recommended for Bolt):</strong>
           <br />
-          1. Create a Google Cloud Project and enable the Google Sheets API
+          1. Create a Google Sheets API Key (easier than OAuth)
           <br />
-          2. Create OAuth 2.0 credentials (Web application) for write access
+          2. Create a Google Spreadsheet and make it publicly readable
           <br />
-          3. Create a Google Spreadsheet with a sheet named "WorkoutLogs"
+          3. Workouts will be stored locally and can be exported to sheets manually
           <br />
-          4. Add headers to row 1: Date, Exercise Name, Muscle Group, Set Number, Reps, Weight (kg), Difficulty Level, Notes
+          4. Add headers: Date, Exercise Name, Muscle Group, Set Number, Reps, Weight (kg), Difficulty Level, Notes
+          <br />
+          <strong>For full OAuth integration, use a permanent domain instead of Bolt.</strong>
         </AlertDescription>
       </Alert>
 
@@ -211,11 +238,11 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.open('https://console.cloud.google.com/apis/credentials', '_blank')}
+              onClick={openOAuthGuide}
               className="text-primary hover:text-primary/80"
             >
               <ExternalLink className="w-4 h-4 mr-1" />
-              Get Client ID
+              Setup Guide
             </Button>
           </div>
           <Input
@@ -258,6 +285,11 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
           {isSignedIn && (
             <p className="text-sm text-muted-foreground">
               You now have write access to Google Sheets. Workouts will be automatically logged!
+            </p>
+          )}
+          {!isSignedIn && config.clientId && (
+            <p className="text-sm text-muted-foreground">
+              Make sure to add <code>{currentUrl}</code> to your OAuth redirect URIs in Google Console.
             </p>
           )}
         </div>
