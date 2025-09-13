@@ -14,7 +14,7 @@ interface ProgressTrackerProps {
   selectedMuscleGroup?: string;
 }
 
-type TimeRange = 'week' | 'month' | 'quarter';
+type TimeRange = 'day' |'week' | 'month' | 'quarter';
 
 const ProgressTracker = ({ googleSheetsService, selectedMuscleGroup }: ProgressTrackerProps) => {
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([]);
@@ -79,6 +79,9 @@ const ProgressTracker = ({ googleSheetsService, selectedMuscleGroup }: ProgressT
     const cutoffDate = new Date();
     
     switch (timeRange) {
+        case 'day':
+        cutoffDate.setDate(now.getDate());
+        break;
       case 'week':
         cutoffDate.setDate(now.getDate() - 7);
         break;
@@ -172,6 +175,7 @@ const ProgressTracker = ({ googleSheetsService, selectedMuscleGroup }: ProgressT
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="day">Day</SelectItem>
                 <SelectItem value="week">Last Week</SelectItem>
                 <SelectItem value="month">Last Month</SelectItem>
                 <SelectItem value="quarter">Last Quarter</SelectItem>
