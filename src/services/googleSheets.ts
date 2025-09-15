@@ -98,59 +98,21 @@ export class GoogleSheetsService {
         '' // Notes
       ]);
 
-      // Try to write to Google Sheets if we have access token
-      if (this.config.accessToken) {
-        const appendUrl = `${this.getBaseUrl()}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
-        
-        const response = await fetch(appendUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.config.accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            values: rows
-          })
-        });
-
-        if (response.ok) {
-          apiLogger.log({
-            status: 'success',
-            source: 'GoogleSheets',
-            action: 'logWorkout',
-            message: `Successfully logged ${rows.length} sets to Google Sheets`,
-            meta: { sets: rows.length }
-          });
-          
-          // Also store locally as backup
-          this.storeWorkoutLocally(workoutLog);
-          return true;
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          apiLogger.log({
-            status: 'error',
-            source: 'GoogleSheets',
-            action: 'logWorkout',
-            message: `Failed to write to Google Sheets: ${response.status} ${response.statusText}`,
-            meta: { status: response.status, error: errorData }
-          });
-        }
-      } else {
-        apiLogger.log({
-          status: 'info',
-          source: 'GoogleSheets',
-          action: 'logWorkout',
-          message: 'No OAuth access token available. Storing locally only.'
-        });
-      }
+      // For now, always store locally (API key doesn't provide write access)
+      apiLogger.log({
+        status: 'info',
+        source: 'GoogleSheets',
+        action: 'logWorkout',
+        message: 'API key mode: storing workout locally. Use export feature for sheets.'
+      });
       
-      // Fallback to localStorage
+      // Store to localStorage
       this.storeWorkoutLocally(workoutLog);
       apiLogger.log({
         status: 'success',
         source: 'LocalStorage',
         action: 'logWorkout',
-        message: 'Workout stored locally.'
+        message: 'Workout stored locally. Data is safe and can be exported.'
       });
       
       return true;
