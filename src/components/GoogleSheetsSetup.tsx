@@ -171,7 +171,6 @@ const GoogleSheetsSetup = ({ onConfigSave, initialConfig }: GoogleSheetsSetupPro
             This keeps your credentials secure and out of the code.
           </AlertDescription>
         </Alert>
-        </div>
 
         {/* API Key */}
         <div className="space-y-2">
