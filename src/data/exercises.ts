@@ -18,6 +18,7 @@ export interface WorkoutLog {
   }[];
   date: string;
   muscleGroup: string;
+  difficulty?: string;
 }
 
 export const exercises: Record<string, Record<string, Exercise[]>> = {
